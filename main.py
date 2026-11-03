@@ -1,63 +1,135 @@
 from flask import Flask, request, session, redirect, send_file, jsonify
-import os, json, random, datetime, math
-from PIL import Image, ImageDraw
+import os, json, math, random, tempfile
+from PIL import Image, ImageDraw, ImageFont, ImageFilter
 app = Flask(__name__)
-app.secret_key = "zizo-v3-light"
+app.secret_key = "zizo-v5-pro-real"
 
-MEM_FILE = "/tmp/mem.json"
-VIDEO_FILE = "/tmp/qalbi.mp4"
-AUDIO_FILE = "/tmp/in.mp3"
+MEM_FILE="/tmp/mem.json"
+VIDEO_FILE="/tmp/qalbi.mp4"
+AUDIO_FILE="/tmp/in.mp3"
 
 def load_mem():
     try:
         if os.path.exists(MEM_FILE):
             with open(MEM_FILE,'r') as f: return json.load(f)
     except: pass
-    agents={}
-    names=["راصد","حكيم","خطاف","لسان نيون","هندسة","جزيئات","موجة","ذهبي","أحمر","حركي","لحني","جامع","ملون","قصاص","ناقد","مسرع","مبطئ","مترجم","ناشر","حارس","طبيب"]
-    for i,n in enumerate(names,1):
-        agents[f"a{i}"]={"name":n,"level":1,"xp":random.randint(10,28),"jobs":1}
-    return {"total":1,"factory_level":1,"agents":agents,"log":["مصنع V3 الخفيف جاهز"]}
+    return {"total":0}
 
 def save_mem(m):
-    try:
-        with open(MEM_FILE,'w') as f: json.dump(m,f)
-    except: pass
+    with open(MEM_FILE,'w') as f: json.dump(m,f)
+
+def get_font(size, bold=True):
+    paths=["/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf","/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf","/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf"]
+    for p in paths:
+        if os.path.exists(p):
+            try: return ImageFont.truetype(p, size)
+            except: pass
+    return ImageFont.load_default()
+
+def make_pro_frame(text1, text2, t, style="main"):
+    W,H=1080,1920
+    # خلفية سوداء احترافية
+    img=Image.new('RGB',(W,H),(6,6,10))
+    draw=ImageDraw.Draw(img,'RGBA')
+    cx,cy=W//2, 820
+    
+    # هندسة إسلامية احترافية - نجوم 12
+    for r in [320, 560, 840]:
+        for i in range(24):
+            ang=i*360/24 + t*6
+            x=cx + r*math.cos(math.radians(ang))
+            y=cy + r*math.sin(math.radians(ang))
+            # رسم خطوط متقطعة مثل الصورة المحترفة
+            draw.ellipse((x-2,y-2,x+2,y+2), fill=(255,215,0,35))
+        # خطوط النجمة
+        if r==560:
+            for i in range(12):
+                a1=i*360/12 + t*2
+                a2=(i+5)*360/12 + t*2
+                x1=cx+r*math.cos(math.radians(a1)); y1=cy+r*math.sin(math.radians(a1))
+                x2=cx+r*math.cos(math.radians(a2)); y2=cy+r*math.sin(math.radians(a2))
+                draw.line((x1,y1,x2,y2), fill=(255,215,0,22), width=1)
+
+    # قلب نيون ذهبي احترافي - نبض حقيقي
+    pulse=1.0+0.08*math.sin(t*3.5)
+    base=300*pulse
+    # توهجات خارجية كثيرة مثل الصورة
+    for glow, alpha in [(90,15),(65,25),(40,45),(18,90)]:
+        rr=base+glow
+        draw.ellipse((cx-rr, cy-rr*0.92, cx+rr, cy+rr*0.92), outline=(255,215,0,alpha), width=3)
+    # القلب الداخلي لامع
+    draw.ellipse((cx-base, cy-base*0.92, cx+base, cy+base*0.92), outline=(255,240,130,255), width=6)
+    draw.ellipse((cx-base+12, cy-base*0.92+12, cx+base-12, cy+base*0.92-12), outline=(255,215,0,110), width=1)
+
+    # نصوص كبيرة جداً مثل الصورة المحترفة
+    f_big=get_font(78, True)
+    f_mid=get_font(58, True)
+    f_small=get_font(44, True)
+    
+    # ظل للنص + نص أبيض ذهبي
+    # text1
+    if text1:
+        # ظل
+        draw.text((cx+4, cy-60+4), text1, font=f_big, fill=(0,0,0,200), anchor="mm")
+        draw.text((cx, cy-60), text1, font=f_big, fill=(255,255,255), anchor="mm", stroke_width=3, stroke_fill=(180,140,0))
+    if text2:
+        is_gold="جرحتك" in text2 or "زينة" in text2
+        col=(255,215,0) if is_gold else (255,255,255)
+        draw.text((cx+3, cy+50+3), text2, font=f_mid, fill=(0,0,0,200), anchor="mm")
+        draw.text((cx, cy+50), text2, font=f_mid, fill=col, anchor="mm", stroke_width=2, stroke_fill=(0,0,0))
+        if "؟" in text2:
+            draw.text((cx, cy+130), "ولا تنسى كلمة وحدة جرحتك؟", font=get_font(46,True), fill=(255,215,0), anchor="mm", stroke_width=2, stroke_fill=(0,0,0))
+
+    # لوقو فوق
+    draw.text((W//2, 110), "قلبي يقيل ♡", font=get_font(48,True), fill=(255,215,0,240), anchor="mm")
+    
+    # موجة صوتية احترافية ذهبية كبيرة مثل الصورة
+    wave_y=H-250
+    for i in range(62):
+        x=12 + i*17
+        h=10 + int(52*abs(math.sin(t*5.2 + i*0.41)) + random.randint(2,14))
+        # توهج
+        draw.rectangle((x, wave_y-h, x+10, wave_y+h), fill=(255,215,0,220))
+        # لمعة فوق
+        draw.rectangle((x, wave_y-h, x+10, wave_y-h+3), fill=(255,255,200,180))
+
+    # تلميع جزيئات عشوائية
+    for _ in range(35):
+        x=random.randint(cx-300,cx+300)
+        y=random.randint(cy-300,cy+300)
+        if math.hypot(x-cx, y-cy) < base+80:
+            draw.ellipse((x-1,y-1,x+1,y+1), fill=(255,215,0, random.randint(40,120)))
+
+    return img
 
 HTML="""
-<html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>مصنع V3</title>
+<html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>V5 PRO</title>
 <style>
-body{background:#060606;color:#fff;font-family:sans-serif;padding:12px;margin:0}
-.card{background:#131313;padding:16px;border-radius:20px;max-width:800px;margin:auto;border:1px solid #333}
-h1{color:#ffca28;text-align:center}
-.upload{background:linear-gradient(135deg,#ffca28,#ff4081);padding:16px;border-radius:14px;text-align:center;font-weight:bold;cursor:pointer;display:block;margin:14px 0}
+body{background:#07070a;color:#fff;font-family:sans-serif;padding:0;margin:0}
+.card{background:#111114;padding:16px;border-radius:22px;max-width:820px;margin:12px auto;border:2px solid #ffca28}
+.upload{background:linear-gradient(135deg,#ffca28,#ff4081);padding:20px;border-radius:16px;text-align:center;font-weight:900;cursor:pointer;display:block;margin:16px 0;font-size:18px;color:#000}
 .upload input{display:none}
-.status{background:#111;padding:12px;border-radius:10px;text-align:center;border:1px dashed #444;margin:10px 0}
-#videoBox{display:block;background:#000;padding:14px;border-radius:14px;margin-top:14px;border:2px solid #00e676;text-align:center}
-.download{background:linear-gradient(135deg,#00e676,#00bfa5);color:#000;padding:14px;border-radius:12px;display:block;text-align:center;text-decoration:none;font-weight:bold;margin-top:10px}
+.status{background:#1a1a20;padding:14px;border-radius:12px;text-align:center;border:1px solid #ffca28;margin:12px 0}
+video{width:100%;border-radius:16px;background:#000}
+.download{background:linear-gradient(135deg,#00e676,#00bfa5);color:#000;padding:18px;border-radius:14px;display:block;text-align:center;text-decoration:none;font-weight:900;margin-top:12px;font-size:18px}
 </style></head>
 <body>
 <div class="card">
-<h1>💛 مصنع قلبي يقيل V3 - خفيف وسريع 💛</h1>
-<div id="status" class="status">✅ المصنع جاهز - ارفع صوتك لصنع فيديو احترافي</div>
-<label class="upload">📤 اضغط هنا لرفع الصوت - فيديو احترافي 42 ثانية
+<h1 style="color:#ffca28;text-align:center">💛 مصنع V5 PRO - احترافي حقيقي 💛</h1>
+<div id="status" class="status">✅ قلب نيون ذهبي + هندسة إسلامية + خط كبير + موجة ذهبية - مثل الصورة المحترفة</div>
+<label class="upload">📤 ارفع صوتك الآن - فيديو احترافي مثل الصورة فوق
 <input type="file" id="file" accept="audio/*" onchange="upload()"></label>
-<div id="videoBox">
-<h3 style="color:#00e676">🎬 معاينة الفيديو الاحترافي</h3>
-<video id="preview" controls style="width:100%;border-radius:12px;background:#111" playsinline src="/download"></video>
-<a href="/download" class="download">⬇️ تنزيل الفيديو MP4 - اضغط هنا</a>
-<p style="font-size:11px;color:#999">إذا لم يعمل الفيديو، ارفع صوت جديد أولاً</p>
-</div>
+<video id="preview" controls playsinline src="/download"></video>
+<a href="/download" class="download">⬇️ تحميل الفيديو الاحترافي MP4</a>
 </div>
 <script>
 async function upload(){
- let file=document.getElementById('file').files[0];if(!file)return;
- let s=document.getElementById('status');s.innerText='⏳ يصنع فيديو احترافي... 20 ثانية';
- let fd=new FormData();fd.append('audio',file);
+ let f=document.getElementById('file').files[0];if(!f)return;
+ let s=document.getElementById('status');
+ s.innerHTML='⏳ يصنع فيديو احترافي حقيقي... قلب نيون + موجة ذهبية... 30 ثانية';
+ let fd=new FormData();fd.append('audio',f);
  let res=await fetch('/api/make',{method:'POST',body:fd});
- let data=await res.json();
- s.innerText='✅ اكتمل! انزل لتحت وشغل الفيديو وحمله';
+ s.innerHTML='✅ اكتمل الاحترافي! شغل الفيديو وحمله - خط كبير واضح مثل الصورة';
  document.getElementById('preview').src='/download?t='+Date.now();
 }
 </script>
@@ -66,75 +138,51 @@ async function upload(){
 
 @app.route("/", methods=["GET","POST"])
 def home():
-    mem=load_mem()
     if session.get("logged"): return HTML
     if request.method=="POST":
         if request.form.get("password","").strip().upper()=="ZIZO":
             session["logged"]=True
             return redirect("/")
-    return '<html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="background:#050505;color:#fff;text-align:center;padding:40px"><div style="background:#151515;padding:26px;border-radius:20px;max-width:360px;margin:auto"><h2>🔒 مصنع V3</h2><form method="POST"><input type="password" name="password" placeholder="ZIZO" style="padding:14px;width:80%;border-radius:10px;border:none;text-align:center;margin:12px"><br><button style="background:#ffca28;color:#000;padding:14px 28px;border:none;border-radius:10px;width:85%;font-weight:bold">دخول</button></form></div></body></html>'
-
-@app.route("/api/mem")
-def api_mem(): return jsonify(load_mem())
+    return '<html dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head><body style="background:#050505;color:#fff;text-align:center;padding:60px"><div style="background:#151515;padding:32px;border-radius:22px;max-width:380px;margin:auto;border:2px solid #ffca28"><h2>🔒 V5 PRO</h2><form method="POST"><input type="password" name="password" placeholder="ZIZO" style="padding:18px;width:90%;border-radius:14px;border:none;text-align:center;margin:16px;font-size:18px"><br><button style="background:#ffca28;color:#000;padding:18px 34px;border:none;border-radius:14px;width:95%;font-weight:900;font-size:18px">دخول مصنع محترف</button></form></div></body></html>'
 
 @app.route("/api/make", methods=["POST"])
 def make():
-    mem=load_mem()
     f=request.files.get('audio')
     if f: f.save(AUDIO_FILE)
-    mem["total"]+=1
-    save_mem(mem)
+    save_mem({"total":1})
     try:
-        from moviepy.editor import AudioFileClip, ColorClip, CompositeVideoClip, ImageClip
-        from PIL import Image, ImageDraw
-        import numpy as np
-        
+        from moviepy.editor import AudioFileClip, ImageSequenceClip
+        import tempfile
         audio=AudioFileClip(AUDIO_FILE)
         dur=min(audio.duration, 42)
-        
-        # خلفية سوداء
-        base=ColorClip((1080,1920), color=(0,0,0), duration=dur)
-        
-        # صورة القلب الذهبي
-        img=Image.new('RGB', (1080,1920), (0,0,0))
-        draw=ImageDraw.Draw(img, 'RGBA')
-        cx,cy=540,800
-        # هندسة إسلامية
-        for r in [300,550,750]:
-            pts=[]
-            for i in range(16):
-                ang=i*360/16
-                x=cx+r*math.cos(math.radians(ang))
-                y=cy+r*math.sin(math.radians(ang))
-                pts.append((x,y))
-            draw.line(pts+[pts[0]], fill=(255,215,0,25), width=1)
-        # قلب ذهبي نيون
-        for g in [40,25,12]:
-            draw.ellipse((cx-200-g, cy-200-g, cx+200+g, cy+200+g), outline=(255,215,0,g), width=2)
-        draw.text((cx, cy), "قلبك", fill=(255,220,0), anchor="mm")
-        draw.text((cx, cy+90), "يفكر قبل عقلك", fill=(255,255,255), anchor="mm")
-        draw.text((cx, 100), "قلبي يقيل ♡", fill=(255,215,0), anchor="mm")
-        draw.text((cx, 1800-250), "40,000 خلية - هارفارد 2024", fill=(255,215,0), anchor="mm")
-        img.save("/tmp/bg.png")
-        
-        bg_clip=ImageClip("/tmp/bg.png", duration=dur)
-        final=CompositeVideoClip([base, bg_clip]).set_audio(audio.subclip(0,dur))
-        final.write_videofile(VIDEO_FILE, fps=24, codec='libx264', audio_codec='aac', verbose=False, logger=None)
+        fps=24
+        total=int(dur*fps)
+        # نصوص من صوتك الحقيقي
+        chunks=[("قلّي تعرف علاش تنسى","كلمة زينة"),("ولا تنسى كلمة","وحدة جرحتك؟"),("عقلك يميل للتركيز","على الألم أكثر"),("لأنها تمثل تهديد","لبقائك"),("هذا يسمى","بانحياز السلبية"),("قلبي يقيل ♡","القلب يعقل قبل العقل")]
+        tmpdir=tempfile.mkdtemp()
+        paths=[]
+        for fi in range(total):
+            t=fi/fps
+            idx=int((t/dur)*len(chunks))
+            if idx>=len(chunks): idx=len(chunks)-1
+            t1,t2=chunks[idx]
+            img=make_pro_frame(t1,t2,t)
+            p=os.path.join(tmpdir,f"f{fi:04d}.jpg")
+            img.save(p, quality=92)
+            paths.append(p)
+        clip=ImageSequenceClip(paths, fps=fps)
+        clip=clip.set_audio(audio.subclip(0,dur))
+        clip.write_videofile(VIDEO_FILE, fps=fps, codec='libx264', audio_codec='aac', verbose=False, logger=None)
     except Exception as e:
-        print("video error", e)
-    return jsonify({"ok":True,"mem":mem})
+        print("V5 error", e)
+        import traceback; traceback.print_exc()
+    return jsonify({"ok":True})
 
 @app.route("/download")
 def dl():
-    if os.path.exists(VIDEO_FILE):
-        return send_file(VIDEO_FILE, as_attachment=False, mimetype="video/mp4")
-    # لو لا يوجد فيديو، أرسل الصوت الأصلي
-    if os.path.exists(AUDIO_FILE):
-        return send_file(AUDIO_FILE, as_attachment=False, mimetype="audio/mpeg")
-    return "ارفع صوت أولا", 404
-
-@app.route("/logout")
-def logout(): session.clear(); return redirect("/")
+    if os.path.exists(VIDEO_FILE): return send_file(VIDEO_FILE, mimetype="video/mp4")
+    if os.path.exists(AUDIO_FILE): return send_file(AUDIO_FILE, mimetype="audio/mpeg")
+    return "ارفع صوت",404
 
 if __name__=="__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT",10000)))
